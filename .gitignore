@@ -1,0 +1,9 @@
+lib
+log
+logs
+var
+config
+data
+etc-dnsmasq.d
+etc-pihole
+.env

@@ -1,0 +1,178 @@
+version: '3.8'
+
+services:
+  poste.io:
+    image: analogic/poste.io:latest
+    container_name: poste_io
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./poste.io/data:/data
+    restart: always
+    ports:
+      - "25:25"
+      - "110:110"
+      - "143:143"
+      - "587:587"
+      - "993:993"
+      - "995:995"
+      - "4190:4190"
+    environment:
+      - HTTPS=${POSTE_IO_HTTPS}
+    networks:
+      - poste_io
+
+  nextcloud.db:
+    image: mariadb:latest
+    container_name: nextcloud_db
+    restart: always
+    volumes:
+      - ./nextcloud/mysql/lib:/var/lib/mysql:rw
+      - ./nextcloud/mysql/log:/var/log/mysql:rw
+    environment:
+      - MYSQL_ROOT_PASSWORD=${NEXTCLOUD_MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${NEXTCLOUD_MYSQL_DATABASE}
+      - MYSQL_USER=${NEXTCLOUD_MYSQL_USER}
+      - MYSQL_PASSWORD=${NEXTCLOUD_MYSQL_PASSWORD}
+    networks:
+      - nextcloud
+  
+  nextcloud.redis:
+    image: redis:alpine
+    container_name: nextcloud_redis
+    restart: always
+    networks:
+      - nextcloud
+  
+  nextcloud.app:
+    image: rootthekid/nextcloud_imap:latest
+    container_name: nextcloud_app
+    environment:
+      - MYSQL_HOST=nextcloud_db
+      - REDIS_HOST=nextcloud_redis
+      - MYSQL_USER=${NEXTCLOUD_MYSQL_USER}
+      - MYSQL_PASSWORD=${NEXTCLOUD_MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${NEXTCLOUD_MYSQL_DATABASE}
+    volumes:
+      - ./nextcloud/var/www/html:/var/www/html:rw
+      - ./nextcloud/php.ini:/usr/local/etc/php/php.ini:rw
+    restart: always
+    depends_on:
+      - nextcloud.db
+      - nextcloud.redis
+    networks:
+      - nextcloud
+  
+  nextcloud.cron:
+    image: rootthekid/nextcloud_imap:latest
+    container_name: nextcloud_cron
+    restart: always
+    volumes:
+      - ./nextcloud/var/www/html:/var/www/html:rw
+    entrypoint: /cron.sh
+    depends_on:
+      - nextcloud.db
+      - nextcloud.redis
+      - nextcloud.app
+    networks:
+      - nextcloud
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: always
+    volumes:
+      - ./bitwarden/data:/data/
+    networks:
+      - bitwarden
+
+  wordpress.app-gg:
+    image: wordpress:latest
+    restart: always
+    container_name: wordpress_app_gg
+    depends_on:
+      - wordpress.db-gg
+    environment:
+      WORDPRESS_DB_HOST: wordpress_db_gg
+      WORDPRESS_DB_USER: ${WORDPRESS_GG_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_GG_DB_PASSWORD}
+      WORDPRESS_DB_NAME: ${WORDPRESS_GG_DB_DATABASE}
+    volumes:
+      - ./wordpress-gg/var/www/html:/var/www/html
+    networks:
+      - wordpress
+
+  wordpress.db-gg:
+    image: mysql:5.7
+    restart: always
+    container_name: wordpress_db_gg
+    environment:
+      MYSQL_DATABASE: ${WORDPRESS_GG_DB_DATABASE}
+      MYSQL_USER: ${WORDPRESS_GG_DB_USER}
+      MYSQL_PASSWORD: ${WORDPRESS_GG_DB_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - ./wordpress-gg/mysql/lib:/var/lib/mysql:rw
+      - ./wordpress-gg/mysql/log:/var/log/mysql:rw
+    networks:
+      - wordpress
+
+  satisfactory:
+    build:
+      context: ./satisfactory
+    restart: always
+    container_name: satisfactory-server
+    ports:
+      - 15777:15777/udp
+      - 15000:15000/udp
+      - 7777:7777/udp
+    volumes:
+      - ./satisfactory/data:/home/steam/Satisfactory-dedicated
+
+  onlinecv:
+    image: rootthekid/onlinecv:v1
+    container_name: onlinecv_web
+    restart: always
+    networks:
+      - onlinecv
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/log/nginx:/var/log/nginx:rw
+      - ./nginx/html:/etc/nginx/html:rw
+      - /etc/letsencrypt/:/etc/letsencrypt:ro
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    depends_on:
+      - onlinecv
+      - wordpress.app-gg
+      - vaultwarden
+      - nextcloud.app
+      - poste.io
+    networks: 
+      - nginx
+      - poste_io
+      - nextcloud
+      - bitwarden
+      - wordpress
+      - onlinecv
+
+
+networks:
+  nginx:
+    external: true
+  poste_io:
+    external: false
+  nextcloud:
+    external: false
+  bitwarden:
+    external: false
+  wordpress:
+    external: false
+  onlinecv:
+    external: false
