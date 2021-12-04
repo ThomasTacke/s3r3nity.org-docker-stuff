@@ -11,8 +11,8 @@ server {
 
     client_max_body_size 10G;
 
-    ssl_certificate /etc/letsencrypt/live/thomas.tacke.email/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/thomas.tacke.email/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/s3r3nity.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/s3r3nity.org/privkey.pem;
     ssl_protocols TLSv1.2;
     ssl_prefer_server_ciphers on;
 
