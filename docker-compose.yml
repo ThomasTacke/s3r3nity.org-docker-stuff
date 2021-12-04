@@ -64,24 +64,6 @@ services:
       - nextcloud.redis
     networks:
       - nextcloud
-  
-  nextcloud.cron:
-    image: rootthekid/nextcloud_imap:23
-    container_name: nextcloud_cron
-    restart: always
-    volumes:
-      - ./nextcloud/var/www/html/data:/var/www/html/data:rw
-      - ./nextcloud/var/www/html/config:/var/www/html/config:rw
-      - ./nextcloud/var/www/html/apps:/var/www/html/apps:rw
-      - ./nextcloud/var/www/html/custom_apps:/var/www/html/custom_apps:rw
-      - ./nextcloud/php.ini:/usr/local/etc/php/php.ini:rw
-    entrypoint: /cron.sh
-    depends_on:
-      - nextcloud.db
-      - nextcloud.redis
-      - nextcloud.app
-    networks:
-      - nextcloud
 
   vaultwarden:
     image: vaultwarden/server:latest
