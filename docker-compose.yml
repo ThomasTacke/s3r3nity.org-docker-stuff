@@ -44,7 +44,7 @@ services:
       - nextcloud
   
   nextcloud.app:
-    image: rootthekid/nextcloud_imap:latest
+    image: rootthekid/nextcloud_imap:23
     container_name: nextcloud_app
     environment:
       - MYSQL_HOST=nextcloud_db
@@ -66,7 +66,7 @@ services:
       - nextcloud
   
   nextcloud.cron:
-    image: rootthekid/nextcloud_imap:latest
+    image: rootthekid/nextcloud_imap:23
     container_name: nextcloud_cron
     restart: always
     volumes:
