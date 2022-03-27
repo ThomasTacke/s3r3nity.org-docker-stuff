@@ -117,6 +117,19 @@ services:
     volumes:
       - ./satisfactory/data:/home/steam/Satisfactory-dedicated
 
+  minecraft:
+    image: itzg/minecraft-server
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+    volumes:
+      - ./minecraft/data:/data
+
   onlinecv:
     image: rootthekid/onlinecv:v1
     container_name: onlinecv_web
