@@ -44,7 +44,7 @@ services:
       - nextcloud
   
   nextcloud.app:
-    image: rootthekid/nextcloud_imap:23
+    image: rootthekid/nextcloud_imap:26
     container_name: nextcloud_app
     environment:
       - MYSQL_HOST=nextcloud_db
