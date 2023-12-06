@@ -1,9 +1,151 @@
 version: '3.8'
 
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--log.level=DEBUG"
+
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+      - "--api.insecure=false"
+      - "--api.dashboard=true"
+
+      - "--providers.file.filename=/dynamic.yml"
+      - "--providers.docker=true"
+      # - "--providers.docker.watch"
+      - "--providers.docker.exposedbydefault=false"
+
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+      
+      # - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      # - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      # - --certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}
+      # - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      # LetsEncrypt Staging Server - uncomment when testing
+      # - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+    volumes:
+      - ./traefik/letsencrypt/:/letsencrypt
+      - ./traefik/dynamic.yml:/dynamic.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 80:80
+      - 443:443
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_BASIC_AUTH}"
+      - "traefik.http.middlewares.traefik-auth.basicauth.removeheader=true"
+      - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-https.redirectScheme.permanent=true"
+
+      - "traefik.http.routers.dashboard-plain.entrypoints=web"
+      - "traefik.http.routers.dashboard-plain.rule=Host(`traefik-ui.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard-plain.middlewares=redirect-https"
+
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik-ui.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=traefik-auth"
+    restart: always
+    networks:
+      - traefik_external 
+      - traefik
+      - poste_io
+      - nextcloud
+      - bitwarden
+      - onlinecv
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - ./prometheus/data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.size=256MB'
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.prometheus-plain.entrypoints=web"
+      - "traefik.http.routers.prometheus-plain.rule=Host(`prom.${DOMAIN}`)"
+      - "traefik.http.routers.prometheus-plain.middlewares=redirect-https"
+
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.prometheus.rule=Host(`prom.${DOMAIN}`)"
+      - "traefik.http.routers.prometheus.service=prometheus"
+      - "traefik.http.routers.prometheus.middlewares=traefik-auth"
+
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+    networks:
+      - traefik
+    restart: unless-stopped
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - prometheus
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    environment:
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.grafana-plain.entrypoints=web"
+      - "traefik.http.routers.grafana-plain.rule=Host(`grafana.${DOMAIN}`)"
+      - "traefik.http.routers.grafana-plain.middlewares=redirect-https"
+
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.service=grafana"
+      - "traefik.http.routers.grafana.middlewares=traefik-auth"
+
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    networks:
+      - traefik
+    restart: unless-stopped
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"   
+
   poste.io:
     image: analogic/poste.io:latest
-    container_name: poste_io
+    container_name: poste.io
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.poste-io-plain.entrypoints=web"
+      - "traefik.http.routers.poste-io-plain.rule=Host(`mail.${DOMAIN}`)"
+      - "traefik.http.routers.poste-io-plain.middlewares=redirect-https"
+
+      - "traefik.http.routers.poste-io.entrypoints=websecure"
+      - "traefik.http.routers.poste-io.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.poste-io.rule=Host(`mail.${DOMAIN}`)"
+      # - "traefik.http.routers.poste-io.service=poste-io"
+
+      - "traefik.http.services.poste-io.loadbalancer.server.port=80"
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./poste.io/data:/data
@@ -18,12 +160,16 @@ services:
       - "4190:4190"
     environment:
       - HTTPS=${POSTE_IO_HTTPS}
+      - VIRTUAL_HOST=mail.${DOMAIN}
+      - HOSTNAME=mail.${DOMAIN}
     networks:
       - poste_io
 
   nextcloud.db:
-    image: mariadb:10.5
+    image: mariadb:10.6
     container_name: nextcloud_db
+    labels:
+      - "traefik.enable=false"
     restart: always
     volumes:
       - ./nextcloud/mysql/lib:/var/lib/mysql:rw
@@ -39,13 +185,28 @@ services:
   nextcloud.redis:
     image: redis:alpine
     container_name: nextcloud_redis
+    labels:
+      - "traefik.enable=false"
     restart: always
     networks:
       - nextcloud
   
   nextcloud.app:
-    image: rootthekid/nextcloud_imap:26
+    image: rootthekid/nextcloud_imap:27
     container_name: nextcloud_app
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.nextcloud-plain.entrypoints=web"
+      - "traefik.http.routers.nextcloud-plain.rule=Host(`nextcloud2.${DOMAIN}`)"
+      - "traefik.http.routers.nextcloud-plain.middlewares=redirect-https"
+
+      - "traefik.http.routers.nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud2.${DOMAIN}`)"
+      # - "traefik.http.routers.nextcloud.service=nextcloud"
+
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
     environment:
       - MYSQL_HOST=nextcloud_db
       - REDIS_HOST=nextcloud_redis
@@ -68,48 +229,32 @@ services:
   vaultwarden:
     image: vaultwarden/server:latest
     container_name: vaultwarden
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.vaultwarden-plain.entrypoints=web"
+      - "traefik.http.routers.vaultwarden-plain.rule=Host(`bitwarden.${DOMAIN}`)"
+      - "traefik.http.routers.vaultwarden-plain.middlewares=redirect-https"
+
+      - "traefik.http.routers.vaultwarden.entrypoints=websecure"
+      - "traefik.http.routers.vaultwarden.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.vaultwarden.rule=Host(`bitwarden.${DOMAIN}`)"
+      # - "traefik.http.routers.vaultwarden.service=vaultwarden"
+
+      - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
     restart: always
     volumes:
       - ./bitwarden/data:/data/
     networks:
       - bitwarden
 
-  wordpress.app-gg:
-    image: wordpress:latest
-    restart: always
-    container_name: wordpress_app_gg
-    depends_on:
-      - wordpress.db-gg
-    environment:
-      WORDPRESS_DB_HOST: wordpress_db_gg
-      WORDPRESS_DB_USER: ${WORDPRESS_GG_DB_USER}
-      WORDPRESS_DB_PASSWORD: ${WORDPRESS_GG_DB_PASSWORD}
-      WORDPRESS_DB_NAME: ${WORDPRESS_GG_DB_DATABASE}
-    volumes:
-      - ./wordpress-gg/var/www/html:/var/www/html
-    networks:
-      - wordpress
-
-  wordpress.db-gg:
-    image: mysql:5.7
-    restart: always
-    container_name: wordpress_db_gg
-    environment:
-      MYSQL_DATABASE: ${WORDPRESS_GG_DB_DATABASE}
-      MYSQL_USER: ${WORDPRESS_GG_DB_USER}
-      MYSQL_PASSWORD: ${WORDPRESS_GG_DB_PASSWORD}
-      MYSQL_RANDOM_ROOT_PASSWORD: '1'
-    volumes:
-      - ./wordpress-gg/mysql/lib:/var/lib/mysql:rw
-      - ./wordpress-gg/mysql/log:/var/log/mysql:rw
-    networks:
-      - wordpress
-
   satisfactory:
     build:
       context: ./satisfactory
     restart: always
     container_name: satisfactory-server
+    labels:
+      - "traefik.enable=false"
     ports:
       - 15777:15777/udp
       - 15000:15000/udp
@@ -119,6 +264,8 @@ services:
 
   minecraft:
     image: itzg/minecraft-server
+    labels:
+      - "traefik.enable=false"
     ports:
       - "25565:25565"
     environment:
@@ -135,48 +282,33 @@ services:
   onlinecv:
     image: rootthekid/onlinecv:v1
     container_name: onlinecv_web
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.onlinecv-plain.entrypoints=web"
+      - "traefik.http.routers.onlinecv-plain.rule=Host(`thomas.tacke.email`)"
+      - "traefik.http.routers.onlinecv-plain.middlewares=redirect-https"
+
+      - "traefik.http.routers.onlinecv.entrypoints=websecure"
+      - "traefik.http.routers.onlinecv.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.onlinecv.rule=Host(`thomas.tacke.email`)"
+      # - "traefik.http.routers.onlinecv.service=onlinecv"
+
+      - "traefik.http.services.onlinecv.loadbalancer.server.port=80"
     restart: always
     networks:
       - onlinecv
 
-  nginx:
-    image: nginx:latest
-    container_name: nginx
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/log/nginx:/var/log/nginx:rw
-      - ./nginx/html:/etc/nginx/html:rw
-      - /etc/letsencrypt/:/etc/letsencrypt:ro
-    ports:
-      - 80:80
-      - 443:443
-    restart: always
-    depends_on:
-      - onlinecv
-      - wordpress.app-gg
-      - vaultwarden
-      - nextcloud.app
-      - poste.io
-    networks: 
-      - nginx
-      - poste_io
-      - nextcloud
-      - bitwarden
-      - wordpress
-      - onlinecv
-
-
 networks:
-  nginx:
+  traefik_external:
     external: true
+  traefik:
+    external: false
   poste_io:
     external: false
   nextcloud:
     external: false
   bitwarden:
-    external: false
-  wordpress:
     external: false
   onlinecv:
     external: false
