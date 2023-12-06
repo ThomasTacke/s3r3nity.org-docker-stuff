@@ -4,7 +4,5 @@ logs
 var
 config
 data
-etc-dnsmasq.d
-etc-pihole
 .env
-*https.conf
+letsencrypt

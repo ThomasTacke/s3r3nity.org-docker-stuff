@@ -1,4 +1,4 @@
-FROM nextcloud:26-apache
+FROM nextcloud:27-apache
 
 RUN echo "Acquire::Check-Valid-Until \"false\";\nAcquire::Check-Date \"false\";" | cat > /etc/apt/apt.conf.d/10no--check-valid-until
 
@@ -26,5 +26,5 @@ RUN set -ex; \
         | sort -u \
         | xargs -rt apt-mark manual; \
     \
-    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    # apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     rm -rf /var/lib/apt/lists/*
