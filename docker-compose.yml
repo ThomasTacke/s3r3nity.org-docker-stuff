@@ -121,7 +121,7 @@ services:
       - "traefik.http.routers.grafana.tls.certresolver=${CERT_RESOLVER}"
       - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
       - "traefik.http.routers.grafana.service=grafana"
-      - "traefik.http.routers.grafana.middlewares=traefik-auth"
+      # - "traefik.http.routers.grafana.middlewares=traefik-auth"
 
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     networks:
