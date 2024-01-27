@@ -350,12 +350,12 @@ services:
       - ENABLE_DEFENSE_OTHER_GUILD_PLAYER=false
       - COOP_PLAYER_MAX_NUM=4
       - MAX_PLAYERS=32
-      - SERVER_NAME=jammsen-docker-generated-###RANDOM###
+      - SERVER_NAME=s3r3nity-palworld
       - SERVER_DESCRIPTION=Palworld-Dedicated-Server running in Docker by jammsen
-      - ADMIN_PASSWORD=adminPasswordHere
-      - SERVER_PASSWORD=serverPasswordHere
+      - ADMIN_PASSWORD=${PALWORLD_ADMIN_PW}
+      - SERVER_PASSWORD=${PALWORLD_SERVER_PW}
       - PUBLIC_PORT=8211
-      - PUBLIC_IP=
+      - PUBLIC_IP=${PALWORLD_SERVER_IP}
       - RCON_ENABLED=false
       - RCON_PORT=25575
       - REGION=
