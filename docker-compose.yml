@@ -362,7 +362,7 @@ services:
       - USEAUTH=true
       - BAN_LIST_URL=https://api.palworldgame.com/api/banlist.txt
     volumes:
-      - ./game:/palworld
+      - ./palworld:/palworld
 
   onlinecv:
     image: rootthekid/onlinecv:v1
