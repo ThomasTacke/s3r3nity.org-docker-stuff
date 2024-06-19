@@ -1,4 +1,4 @@
-FROM nextcloud:27-apache
+FROM nextcloud:28-apache
 
 RUN echo "Acquire::Check-Valid-Until \"false\";\nAcquire::Check-Date \"false\";" | cat > /etc/apt/apt.conf.d/10no--check-valid-until
 
