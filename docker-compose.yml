@@ -194,7 +194,7 @@ services:
       - nextcloud
   
   nextcloud.app:
-    image: rootthekid/nextcloud_imap:27
+    image: rootthekid/nextcloud_imap:28
     container_name: nextcloud_app
     labels:
       - "traefik.enable=true"
