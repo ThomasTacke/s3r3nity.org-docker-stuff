@@ -194,7 +194,7 @@ services:
       - nextcloud
   
   nextcloud.app:
-    image: rootthekid/nextcloud_imap:28
+    image: nextcloud:apache
     container_name: nextcloud_app
     labels:
       - "traefik.enable=true"
@@ -207,6 +207,10 @@ services:
       - "traefik.http.routers.nextcloud.tls.certresolver=${CERT_RESOLVER}"
       - "traefik.http.routers.nextcloud.rule=Host(`nextcloud2.${DOMAIN}`)"
       # - "traefik.http.routers.nextcloud.service=nextcloud"
+      - "traefik.http.routers.nextcloud.middlewares=nextcloud_redirectregex"
+      - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.permanent=true"
+      - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.regex=https://(.*)/.well-known/(?:card|cal)dav"
+      - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.replacement=https://$${1}/remote.php/dav"
 
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
     environment:
@@ -244,6 +248,8 @@ services:
       # - "traefik.http.routers.vaultwarden.service=vaultwarden"
 
       - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
+    environment:
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN}
     restart: always
     volumes:
       - ./bitwarden/data:/data/
