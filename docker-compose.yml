@@ -45,6 +45,10 @@ services:
       - "traefik.http.middlewares.traefik-auth.basicauth.removeheader=true"
       - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-https.redirectScheme.permanent=true"
+      - "traefik.http.middlewares.strict-transport.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.strict-transport.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.strict-transport.headers.stsPreload=true"
+      - "traefik.http.middlewares.strict-transport.headers.stsIncludeSubdomains=true"
 
       - "traefik.http.routers.dashboard-plain.entrypoints=web"
       - "traefik.http.routers.dashboard-plain.rule=Host(`traefik-ui.${DOMAIN}`)"
@@ -207,7 +211,8 @@ services:
       - "traefik.http.routers.nextcloud.tls.certresolver=${CERT_RESOLVER}"
       - "traefik.http.routers.nextcloud.rule=Host(`nextcloud2.${DOMAIN}`)"
       # - "traefik.http.routers.nextcloud.service=nextcloud"
-      - "traefik.http.routers.nextcloud.middlewares=nextcloud_redirectregex"
+      - "traefik.http.routers.nextcloud.middlewares=nextcloud_redirectregex,strict-transport"
+
       - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.permanent=true"
       - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.regex=https://(.*)/.well-known/(?:card|cal)dav"
       - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.replacement=https://$${1}/remote.php/dav"
