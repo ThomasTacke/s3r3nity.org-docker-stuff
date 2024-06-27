@@ -408,7 +408,7 @@ services:
       - "traefik.http.routers.immich.rule=Host(`immich.${DOMAIN}`)"
       # - "traefik.http.routers.immich.service=immich"
 
-      - "traefik.http.services.immich.loadbalancer.server.port=3301"
+      - "traefik.http.services.immich.loadbalancer.server.port=3001"
     volumes:
       - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
