@@ -67,6 +67,7 @@ services:
       - nextcloud
       - bitwarden
       - onlinecv
+      - immich
     logging:
       options:
         max-size: "10m"
