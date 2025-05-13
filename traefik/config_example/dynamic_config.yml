@@ -1,0 +1,230 @@
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        - TLS_AES_128_GCM_SHA256
+        - TLS_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+
+      # sniStrict: false # for testing
+      sniStrict: true
+
+http:
+  middlewares:
+    traefik-auth:
+      basicAuth:
+        users:
+          - {{ env "TRAEFIK_BASIC_AUTH" }}
+        removeHeader: true
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+    strict-transport:
+      headers:
+        stsSeconds: 31536000 # one year in seconds
+        stsPreload: true
+        stsIncludeSubdomains: true
+        forceSTSHeader: true
+    nextcloud-redirect-regex:
+      redirectRegex:
+        permanent: true
+        regex: https://(.*)/.well-known/(?:card|cal)dav
+        replacement: https://$${1}/remote.php/dav"
+
+  routers:
+    dashboard-redirect:
+      rule: 'Host(`traefik-ui.{{ env "DOMAIN" }}`)'
+      service: api@internal
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    dashboard:
+      rule: 'Host(`traefik-ui.{{ env "DOMAIN" }}`)'
+      service: api@internal
+      entryPoints:
+        - websecure
+      middlewares:
+        - traefik-auth
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    prometheus-redirect:
+      rule: 'Host(`prom.{{ env "DOMAIN" }}`)'
+      service: prometheus-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    prometheus:
+      rule: 'Host(`prom.{{ env "DOMAIN" }}`)'
+      service: prometheus-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - traefik-auth
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    grafana-redirect:
+      rule: 'Host(`grafana.{{ env "DOMAIN" }}`)'
+      service: grafana-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    grafana:
+      rule: 'Host(`grafana.{{ env "DOMAIN" }}`)'
+      service: grafana-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    poste-io-redirect:
+      rule: 'Host(`mail.{{ env "DOMAIN" }}`)'
+      service: poste-io-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    poste-io:
+      rule: 'Host(`mail.{{ env "DOMAIN" }}`)'
+      service: poste-io-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    nextcloud-redirect:
+      rule: 'Host(`nextcloud2.{{ env "DOMAIN" }}`)'
+      service: nextcloud-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    nextcloud:
+      rule: 'Host(`nextcloud2.{{ env "DOMAIN" }}`)'
+      service: nextcloud-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - nextcloud-redirect-regex
+        - strict-transport
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    vaultwarden-redirect:
+      rule: 'Host(`bitwarden.{{ env "DOMAIN" }}`)'
+      service: vaultwarden-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    vaultwarden:
+      rule: 'Host(`bitwarden.{{ env "DOMAIN" }}`)'
+      service: vaultwarden-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    online-cv-redirect:
+      rule: 'Host(`thomas.tacke.email`)'
+      service: online-cv-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    online-cv:
+      rule: 'Host(`thomas.tacke.email`)'
+      service: online-cv-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    immich-redirect:
+      rule: 'Host(`immich.{{ env "DOMAIN" }}`)'
+      service: immich-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    immich:
+      rule: 'Host(`immich.{{ env "DOMAIN" }}`)'
+      service: immich-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    pangolin-redirect:
+      rule: 'Host(`pangolin.{{ env "DOMAIN" }}`)'
+      service: pangolin-next-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    pangolin-next:
+      rule: 'Host(`pangolin.{{ env "DOMAIN" }}`) && !PathPrefix(`/api/v1`)'
+      service: pangolin-next-service
+      entryPoints:
+       - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    pangolin-api:
+      rule: 'Host(`pangolin.{{ env "DOMAIN" }}`) && PathPrefix(`/api/v1`)' 
+      service: pangolin-api-service
+      entryPoints:
+       - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+    pangolin-ws:
+      rule: 'Host(`pangolin.{{ env "DOMAIN" }}`)' 
+      service: pangolin-api-service
+      entryPoints:
+       - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
+
+  services:
+    prometheus-service:
+      loadBalancer:
+        servers:
+          - url: http://prometheus:9090
+    grafana-service:
+      loadBalancer:
+        servers:
+          - url: http://grafana:3000
+    poste-io-service:
+      loadBalancer:
+        servers:
+          - url: http://poste.io:80
+    nextcloud-service:
+      loadBalancer:
+        servers:
+          - url: http://nextcloud_app:80
+    vaultwarden-service:
+      loadBalancer:
+        servers:
+          - url: http://vaultwarden:80
+    online-cv-service:
+      loadBalancer:
+        servers:
+          - url: http://onlinecv_web:80
+    immich-service:
+      loadBalancer:
+        servers:
+          - url: http://immich_server:2283
+    pangolin-next-service:
+      loadBalancer:
+        servers:
+          - url: http://pangolin:3002
+    pangolin-api-service:
+      loadBalancer:
+        servers:
+          - url: http://pangolin:3000
+    
