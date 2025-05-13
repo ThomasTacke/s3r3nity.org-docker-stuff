@@ -1,0 +1,45 @@
+api:
+  insecure: false
+  dashboard: true
+
+log:
+  level: DEBUG
+  # format: common
+
+providers:
+  file:
+    filename: "/etc/traefik/dynamic_config.yml"
+    watch: true
+  docker:
+    # watch: true
+    exposedbydefault: false
+  http:
+    endpoint: "http://pangolin:3001/api/v1/traefik-config"
+    pollInterval: 5s
+
+metrics:
+  prometheus:
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+
+experimental:
+  plugins:
+    badger:
+      modulename: github.com/fosrl/badger
+      version: v1.1.0
+
+certificatesresolvers:
+  letsencrypt:
+    acme:
+      tlschallenge: true
+      email: youremail@example.com # TODO: replace with your own email
+      storage: /letsencrypt/acme.json
+
+entrypoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"

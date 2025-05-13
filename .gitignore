@@ -9,3 +9,5 @@ letsencrypt
 immich
 palworld
 mail-cert
+traefik/config.yml
+fossorial-pangolin/
