@@ -9,5 +9,6 @@ letsencrypt
 immich
 palworld
 mail-cert
-traefik/config.yml
+traefik/config/
 fossorial-pangolin/
+paperless-ngx/

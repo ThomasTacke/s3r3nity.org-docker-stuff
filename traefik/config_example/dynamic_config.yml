@@ -189,6 +189,20 @@ http:
        - websecure
       tls:
         certResolver: {{ env "CERT_RESOLVER" }}
+    paperless-ngx-redirect:
+      rule: 'Host(`paperless.{{ env "DOMAIN" }}`)'
+      service: paperless-ngx-service
+      entryPoints:
+       - web
+      middlewares:
+        - redirect-to-https
+    paperless-ngx:
+      rule: 'Host(`paperless.{{ env "DOMAIN" }}`)' 
+      service: paperless-ngx-service
+      entryPoints:
+       - websecure
+      tls:
+        certResolver: {{ env "CERT_RESOLVER" }}
 
   services:
     prometheus-service:
@@ -227,4 +241,7 @@ http:
       loadBalancer:
         servers:
           - url: http://pangolin:3000
-    
+    paperless-ngx-service:
+      loadBalancer:
+        servers:
+          - url: http://paperless-ngx-app:8000
