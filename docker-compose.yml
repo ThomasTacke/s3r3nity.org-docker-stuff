@@ -98,7 +98,18 @@ services:
     restart: always
     networks:
       - nextcloud
-  
+
+  nextcloud.collabora:
+    image: collabora/code
+    container_name: collabora_app
+    environment:
+      - username=${NEXTCLOUD_COLLABORA_USER}
+      - password=${NEXTCLOUD_COLLABORA_PASSWORD}
+      - "extra_params=--o:ssl.enable=false --o:ssl.termination=true"
+    restart: unless-stopped
+    networks:
+      - nextcloud
+
   nextcloud.app:
     image: nextcloud:apache
     container_name: nextcloud_app
@@ -135,7 +146,7 @@ services:
       - bitwarden
 
   onlinecv:
-    image: rootthekid/onlinecv:v2.2.2
+    image: rootthekid/onlinecv:latest
     container_name: onlinecv_web
     restart: always
     networks:
@@ -317,6 +328,7 @@ services:
       - 51820:51820/udp
       - 80:80
       - 443:443
+      - 25565:25565
     networks:
       - pangolin
       - my_external
