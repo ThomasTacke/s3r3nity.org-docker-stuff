@@ -1,27 +1,11 @@
----
-# services:
-#   satisfactory:
-#     build:
-#       context: ./satisfactory
-#     restart: unless-stopped
-    # deploy:
-    #       resources:
-    #         reservations:
-    #           memory: 12G
-#     container_name: satisfactory-server
-#     ports:
-#       - 7777:7777/udp
-#       - 7777:7777/tcp
-#     volumes:
-#       - ./satisfactory/data:/home/steam/Satisfactory-dedicated
-
 services:
     satisfactory-server:
         container_name: 'satisfactory-server'
         image: 'wolveix/satisfactory-server:latest'
         ports:
-            - 7777:7777/udp
-            - 7777:7777/tcp
+            - '7777:7777/udp'
+            - '7777:7777/tcp'
+            - '8888:8888/tcp'
         volumes:
             - './satisfactory/config:/config'
         environment:
